@@ -3,9 +3,9 @@ const http = require('http');
 const express = require('express');
 const socketIO = require('socket.io');
 
-const {generateMessage, generateLocationMessage} = require('./utils/message');
-const {isRealString} = require('./utils/validation');
-const {Users} = require('./utils/users');
+const { generateMessage, generateLocationMessage } = require('./utils/message');
+const { isRealString } = require('./utils/validation');
+const { Users } = require('./utils/users');
 
 // Get the port from the environment variable
 const port = process.env.PORT || 3000;
@@ -51,21 +51,26 @@ io.on('connection', (socket) => {
   // })
 
   socket.on('createMessage', (message, callback) => {
-    console.log("createMessage", message)
-  
-    io.emit('newMessage', 
-      generateMessage(message.from, message.text)
-    );
+    var user = users.getUser(socket.id);
 
+    if (user && isRealString(message.text)) {
+      io.to(user.room).emit('newMessage',
+        generateMessage(message.from, message.text)
+      );
+    }
     callback("This is from the server");
   });
 
-  socket.on('createLocationMessage', function(coords) {
-    console.log("createLocationMessage", coords);
-    io.emit('newLocationMessage', 
-      generateLocationMessage('Admin', coords.latitude, coords.longitude)
-  )
-  }, function(error) {
+  socket.on('createLocationMessage', function (coords) {
+    //console.log("createLocationMessage", coords);
+    var user = users.getUser(socket.id);
+
+    if (user) {
+      io.to(user.room).emit('newLocationMessage',
+        generateLocationMessage(user.name, coords.latitude, coords.longitude)
+      )
+    }
+  }, function (error) {
     console.log("Error", error)
   });
 
